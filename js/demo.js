@@ -1,7 +1,47 @@
 var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
 var cursors;
-var road_main;
-var dict = {};
+
+
+
+var StateAlert = function(banner_text, button_text,callback_function){
+
+}
+
+/*
+0 = farm
+*/
+var Farm = function(x,y,sprite_name){
+    this.HealthDropRateInMinutes = 30;
+    this.HealthDropAmount = 25;
+    this.stomachAdd = 10;
+    this.health = 20;
+
+
+    this.nourishmentKind=0;
+
+    this.farm = game.add.sprite(x, y, sprite_name);
+    //game.physics.arcade.enable(this.home);
+    game.physics.enable(this.farm, Phaser.Physics.ARCADE);
+
+    this.farm.body.immovable=true;
+
+    this.farm.filthyGrandFather=this;
+    nourishments.push(this);
+}
+
+
+Farm.prototype.FeedPerson = function(person){
+    person.health += this.stomachAdd;
+    this.health -= this.stomachAdd;
+}
+
+// Farm.prototype.eat = function(food){
+//     this.stomach += food.GetNutrition();
+//     this.stomach %= this.maxStomach;
+//     this.health += 5;
+// }
+
+
 
 
 var Home = function(x, y, sprite_name){
@@ -22,10 +62,163 @@ Home.prototype.GetSprite = function(){
 }
 
 
+var World = function(){
+    this.clock=0;
+    this.day=60;
+    this.minute=0;
+    this.second=0;
+
+
+    var road_main;
+    var road_rib_barrier_top;
+    var road_rib_barrier_bottom;
+    var road_main_barrier_left;
+    var road_main_barrier_right;
+
+
+
+
+    game.add.tileSprite(0, 0,game.world.width ,game.world.height, 'earth');
+
+
+    var home_protagonist = new Home(0, 260, 'home_brown');
+
+
+    road_main = game.add.tileSprite(32*8, 0, 128 ,game.world.height, 'road_main');
+    road_rib = game.add.tileSprite(0, 32*4,game.world.width , 32*4, 'road_main');
+    
+
+
+    var car_red = new Car(32*8+80, 0, 'car_red');
+    var car_blue = new Car(0, 32*4+100, 'car_blue');
+    var car_collide = new Car(0, 0, 'car_blue');
+    var car_collide_two = new Car(100, 300, 'car_red');
+
+    car_collide.GoDown();
+    car_blue.GoRight();
+    car_collide_two.GoLeft();
+
+
+    protagonist= new Person(32, game.world.height - 150, 'villager');
+
+
+    //overlay text
+    this.stomachText = game.add.text(0, game.world.height-30, 'stomach: ' + protagonist.stomach, { font:"14px Arial",fill: '#000' });
+    this.healthText = game.add.text(0, game.world.height-20, 'health: ' + protagonist.health, { font:"14px Arial",fill: '#000' });
+
+
+    var stateTextX=game.world.width/4;
+    var stateTextY=game.world.height/1.15;
+   
+    var stateBanner = game.add.tileSprite(stateTextX, stateTextY, game.world.width/2 , game.world.height/7, 'background_state');
+    this.stateText = game.add.text(stateTextX, stateTextY, 'Welcome! ', { font:"16px Arial",fill: '#000' });
+
+}
+
+var secondsInMinute = 10;
+var stomachDropRateInMinutes = 1;
+var minimumHealth = 80;
+
+World.prototype.update = function(){
+    this.minuteJustArrived=false; 
+
+    this.clock = (this.clock%60)+1;
+
+
+        //one second
+    if(this.clock==secondsInMinute){
+        this.second=(this.second%secondsInMinute)+1;
+        if(this.second == secondsInMinute){ //one minute
+            this.minute=(this.minute%secondsInMinute)+1;
+            console.log(+this.minute + " minute");
+            this.minuteJustArrived=true;
+        }
+        console.log("second " + this.second);
+    }
+    
+
+    this.UpdatePhysics();
+    this.UpdateHealth();
+    this.UpdateStateBanner();
+
+
+   
+
+}
+
+World.prototype.UpdateHealth=function(clock){
+
+    for(var x=0; x<cars.length;x++){
+        cars[x].UpdateHealth();
+    }
+
+    for(var x=0; x<people.length;x++){
+        people[x].UpdateHealth();
+    }
+
+
+}
+
+
+
+World.prototype.UpdatePhysics=function(){
+        //update for all objects
+    var c = cars.concat(people); 
+    for(var x=0;x<c.length;x++){c[x].update();};
+
+    // //cars collide against each other
+    // for(var x=0; x<cars.length;x++){
+    //     for(var y=x+1;y<cars.length;y++){
+    //         game.physics.arcade.collide(cars[x].GetSprite(), cars[y].GetSprite());
+    //     }
+    // }
+
+    //cars collide overla[]
+    for(var x=0; x<cars.length;x++){
+        for(var y=x+1;y<cars.length;y++){
+             game.physics.arcade.overlap(cars[x].GetSprite(), cars[y].GetSprite(),collider_car_car, null, this);
+        }
+    }
+
+    //cars overlap with homes
+    for(var x=0; x<cars.length;x++){
+        for(var y=0;y<homes.length;y++){
+            game.physics.arcade.overlap(cars[x].GetSprite(), homes[y].GetSprite(),collider_car_home, null, this);
+        }
+    }
+
+    //check overlap between cars and people
+    for(var x=0; x<people.length;x++){
+        for(var y=0;y<cars.length;y++){
+            game.physics.arcade.overlap(cars[y].GetSprite(), people[x].GetSprite(),collider_car_person, null, this);
+        }
+    }
+
+
+    //people and cars collisions
+     for(var x=0; x<cars.length;x++){
+        cars[x].GetSprite().body.immovable=true;
+        for(var y=0;y<people.length;y++){
+            game.physics.arcade.collide(cars[x].GetSprite(), people[y].GetSprite());
+        }
+        cars[x].GetSprite().body.immovable=false;
+    } 
+
+}
 
 
 var Person = function(x, y, sprite_name){
 	this.direction = 'right';
+
+    this.maxStomach=60;
+
+    //variables of state
+    this.stomach = 30; //max is 
+    this.health = 100;
+    this.prev = {}
+    this.prev.stomach=this.stomach;
+    this.prev.health = this.health;
+
 	this.player = game.add.sprite(x, y, sprite_name);
 	game.physics.arcade.enable(this.player);
 
@@ -44,6 +237,28 @@ var Person = function(x, y, sprite_name){
     this.player.filthyGrandFather=this;
     people.push(this);
 };
+
+
+World.prototype.UpdateStateBanner=function(){
+
+    
+
+}
+
+Person.prototype.tickHunger = function(){
+    this.stomach -= (this.maxStomach/2);
+
+    if(this.stomach<0){
+        this.stomach = 0;
+    }
+}
+
+Person.prototype.eat = function(food){
+    this.stomach += food.GetNutrition();
+    this.stomach %= this.maxStomach;
+    this.health += 5;
+}
+
 
 
 
@@ -78,6 +293,14 @@ Person.prototype.update = function(){
     if(this.player.body.velocity.x == this.player.body.velocity.y){
     	this.player.animations.stop();
     } 
+
+
+
+    if((this.prev.health != this.health || this.prev.stomach != this.stomach) && this.health > minimumHealth){
+
+        world.healthText.text='health: ' + this.health;
+        world.stomachText.text='stomach: ' + this.stomach;
+    }
 }
 
 
@@ -85,7 +308,41 @@ Person.prototype.GetSprite = function(){
     return this.player;
 }
 
+//TODO: impelement game restart mechanism
+Person.prototype.UpdateHealth = function(){
+    if(world.minute && world.minuteJustArrived){
+        this.tickHunger();
+        console.log("You are now: " +this.stomach);
+        
+    }
 
+    
+    //if on empty, drop health every minute
+    if(this.stomach == 0 && world.minuteJustArrived){
+        this.health -= 5;
+        
+    }
+
+    if(this.health < minimumHealth){
+        this.Kill();
+    }
+}
+
+Person.prototype.Kill = function(){
+    world.healthText.text='Sorry you are dead';
+}
+
+
+
+
+
+var Food = function(nutrition){
+    this.nutrition = nutrition;
+};
+
+Food.prototype.GetNutrition = function(){
+    return this.nutrition;
+}
 
 var Car = function(x, y, sprite_name){
 
@@ -181,6 +438,11 @@ Car.prototype.GetDir = function(){
 }
 
 
+Car.prototype.UpdateHealth = function(){
+    return this.dir;
+}
+
+
 
 
 
@@ -188,12 +450,9 @@ var people = [];
 var cars = [];
 var homes =[];
 var protagonist;
+var nourishments =[];
 
-var road_rib_barrier_top;
-var road_rib_barrier_bottom;
-var road_main_barrier_left;
-var road_main_barrier_right;
-var hadron;
+
 
 
 function preload() {
@@ -207,95 +466,30 @@ function preload() {
     game.load.spritesheet('earth', 'assets/earth.png', 16, 16);
     game.load.spritesheet('road_main', 'assets/road_main.png', 16, 16);
     game.load.spritesheet('home_brown', 'assets/home_brown.png', 64, 55);
+
+    game.load.spritesheet('background_state', 'assets/background_state.png', 16, 16);
 }
 
 
 function create() {
-
-
-
-
-
-	game.add.tileSprite(0, 0,game.world.width ,game.world.height, 'earth');
-
-
-    var home_protagonist = new Home(0, 260, 'home_brown');
-
-
-	road_main = game.add.tileSprite(32*8, 0, 128 ,game.world.height, 'road_main');
-	road_rib = game.add.tileSprite(0, 32*4,game.world.width , 32*4, 'road_main');
-	
-
-
-
-    var car_red = new Car(32*8+80, 0, 'car_red');
-    var car_blue = new Car(0, 32*4+100, 'car_blue');
-    var car_collide = new Car(0, 0, 'car_blue');
-    var car_collide_two = new Car(100, 300, 'car_red');
-
-    car_collide.GoDown();
-    car_blue.GoRight();
-    car_collide_two.GoLeft();
-
-	protagonist= new Person(32, game.world.height - 150, 'villager');
-
-
+ 
+    world = new World();
 
 
 	cursors = game.input.keyboard.createCursorKeys();
 }
 
 function update() {
-    //update for all objects
-    var c = cars.concat(people); 
-    for(var x=0;x<c.length;x++){c[x].update();};
 
-    // //cars collide against each other
-    // for(var x=0; x<cars.length;x++){
-    //     for(var y=x+1;y<cars.length;y++){
-    //         game.physics.arcade.collide(cars[x].GetSprite(), cars[y].GetSprite());
-    //     }
-    // }
-
-    //cars collide overla[]
-    for(var x=0; x<cars.length;x++){
-        for(var y=x+1;y<cars.length;y++){
-             game.physics.arcade.overlap(cars[x].GetSprite(), cars[y].GetSprite(),collider_car_car, null, this);
-        }
-    }
-
-    //cars overlap with homes
-    for(var x=0; x<cars.length;x++){
-        for(var y=0;y<homes.length;y++){
-            game.physics.arcade.overlap(cars[x].GetSprite(), homes[y].GetSprite(),collider_car_home, null, this);
-        }
-    }
-
-    //check overlap between cars and people
-    for(var x=0; x<people.length;x++){
-        for(var y=0;y<cars.length;y++){
-            game.physics.arcade.overlap(cars[y].GetSprite(), people[x].GetSprite(),collider_car_person, null, this);
-        }
-    }
-
-
-    //people and cars collisions
-     for(var x=0; x<cars.length;x++){
-        cars[x].GetSprite().body.immovable=true;
-        for(var y=0;y<people.length;y++){
-            game.physics.arcade.collide(cars[x].GetSprite(), people[y].GetSprite());
-        }
-        cars[x].GetSprite().body.immovable=false;
-    } 
-
-
+    world.update();
     
-
-
 }
 
 function collider_car_person(car, person){
     console.log("ouch");
+    person.filthyGrandFather.health -= .5;
+    world.healthText.text='health: ' + person.filthyGrandFather.health;
+
 }
 
 

@@ -1,4 +1,4 @@
-var game = new Phaser.Game(800, 600, Phaser.AUTO, '', { preload: preload, create: create, update: update });
+var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game-area', { preload: preload, create: create, update: update });
 var cursors;
 
 
@@ -19,23 +19,27 @@ var Farm = function(x,y,sprite_name){
     this.health = 20;
     this.nourishmentKind=0;
 
-    width=image_map[sprite_name].width;
-    height=image_map[sprite_name].height;
+
+
+    width=image_map[sprite_name][0];
+    height=image_map[sprite_name][1];
 
 
     //can be optimized
-    for(var i=x;i<width+margin;i++){
-        for(var j=y;j<height+margin;j++){
-            if(world[i][j]){
+    for(var i=x;i<x+width+margin;i++){
+        for(var j=y;j<y+height+margin;j++){
+            if(grid[i][j]==1){
                 console.log("couldn't add " + sprite_name);
                 alert("Can't add here, sorry Bieber dance");
                 return null;
             }
-            world.grid[i][j]=1;
+            grid[i][j]=1;
         }
     }
 
     this.farm = game.add.sprite(x, y, sprite_name);
+
+
     //game.physics.arcade.enable(this.home);
     game.physics.enable(this.farm, Phaser.Physics.ARCADE);
 
@@ -49,6 +53,11 @@ var Farm = function(x,y,sprite_name){
 Farm.prototype.FeedPerson = function(person){
     person.health += this.stomachAdd;
     this.health -= this.stomachAdd;
+}
+
+
+Farm.prototype.GetSprite = function(){
+    return this.farm;
 }
 
 // Farm.prototype.eat = function(food){
@@ -74,18 +83,18 @@ var Home = function(x, y, sprite_name){
     this.sprite_name=sprite_name;
     
 
-    width=image_map[sprite_name].width;
-    height=image_map[sprite_name].height;
+    width=image_map[sprite_name][0];
+    height=image_map[sprite_name][1];
 
 
     //can be optimized
-    for(var i=x;i<width+margin;i++){
-        for(var j=y;j<height+margin;j++){
-            if(world[i][j]){
+    for(var i=x;i<x+width+margin;i++){
+        for(var j=y;j<y+height+margin;j++){
+            if(grid[i][j]==1){
                 console.log("couldn't add " + sprite_name);
                 return null;
             }
-            world.grid[i][j]=1;
+            grid[i][j]=1;
         }
     }
 
@@ -128,21 +137,15 @@ var World = function(){
     this.buildBuildingMode = false;
     this.buildingKind = "";
 
+
+    this.contactCurrent="";
+
     this.clock=0;
     this.day=60;
     this.minute=0;
     this.second=0;
 
-    //create 2D grid
-    this.grid = new Array(game.world.width);
-    for(var i=0;i<game.world.width;i++){
-        this.grid[i] = new Array(game.world.height);
-    }
-    for(var i=0;i<game.world.width;i++){
-        for(var j=0;j<game.world.height;j++){
-            this.grid[i][j]=0;
-        }
-    }
+
 
 
     //make sure global states are updated
@@ -323,14 +326,7 @@ World.prototype.UpdatePhysics=function(){
     var c = cars.concat(people); 
     for(var x=0;x<c.length;x++){c[x].update();};
 
-    // //cars collide against each other
-    // for(var x=0; x<cars.length;x++){
-    //     for(var y=x+1;y<cars.length;y++){
-    //         game.physics.arcade.collide(cars[x].GetSprite(), cars[y].GetSprite());
-    //     }
-    // }
-
-    //cars collide overla[]
+    //cars collide
     for(var x=0; x<cars.length;x++){
         for(var y=x+1;y<cars.length;y++){
              game.physics.arcade.overlap(cars[x].GetSprite(), cars[y].GetSprite(),collider_car_car, null, this);
@@ -343,6 +339,14 @@ World.prototype.UpdatePhysics=function(){
             game.physics.arcade.overlap(cars[x].GetSprite(), homes[y].GetSprite(),collider_car_home, null, this);
         }
     }
+
+    //cars overlap with farms
+    for(var x=0; x<cars.length;x++){
+        for(var y=0;y<nourishments.length;y++){
+            game.physics.arcade.overlap(cars[x].GetSprite(), nourishments[y].GetSprite(),collider_car_home, null, this);
+        }
+    }
+
 
     //check overlap between cars and people
     for(var x=0; x<people.length;x++){
@@ -361,16 +365,33 @@ World.prototype.UpdatePhysics=function(){
         cars[x].GetSprite().body.immovable=false;
     } 
 
+
+    //people and structure overlap
+    for(var x=0; x<nourishments.length;x++){
+        game.physics.arcade.overlap(protagonist.GetSprite(), nourishments[x].GetSprite(),collider_person_structure, null, this);
+    } 
+    for(var x=0; x<homes.length;x++ ){
+        game.physics.arcade.overlap(protagonist.GetSprite(), homes[x].GetSprite(),collider_person_structure, null, this);
+    }   
+
+
+    // //people and structure collisons
+    // for(var i=0; i < nourishments.length;i++){
+    //      collider_person_structure(protagonist.GetSprite(),nourishments[i].GetSprite());
+    //  }
+
+
 }
 
 World.prototype.UserInputDetection=function(){
     if(this.buildBuildingMode && game.input.activePointer.isDown){
         console.log("Built a farm");
+        var new_farm = null;
          if (this.buildingKind == stringFarm){
-            var f = new Farm(game.input.mousePointer.x,game.input.mousePointer.y,"farm_new");
+            new_farm = new Farm(game.input.mousePointer.x,game.input.mousePointer.y,"farm_new");
          }
 
-         this.buildBuildingMode=false;
+         if(new_farm != null) {  this.buildBuildingMode=false; }
     }
 }
 
@@ -639,7 +660,7 @@ Car.prototype.UpdateHealth = function(){
 
 
 
-
+var grid;
 var roads = [];
 var people = [];
 var cars = [];
@@ -663,6 +684,17 @@ function load_sprite(image,width, height){
 function preload() {
 
 
+    //create 2D grid
+    grid = new Array(game.world.width);
+    for(var i=0;i<game.world.width;i++){
+        grid[i] = new Array(game.world.height);
+    }
+    for(var i=0;i<game.world.width;i++){
+        for(var j=0;j<game.world.height;j++){
+            grid[i][j]=0;
+        }
+    }
+
     // game.load.image('car_blue', 'assets/car_blue.png');
     // game.load.image('car_red', 'assets/car_red.png');
 
@@ -674,7 +706,7 @@ function preload() {
     load_sprite('earth',16, 16);
     load_sprite('road_main',16, 16);
     load_sprite('home_brown',64, 55);
-    load_sprite('farm_new',16, 16);
+    load_sprite('farm_new',32, 32);
 
     load_sprite('background_state',16, 16);
     load_sprite('button_banner',128, 64);
@@ -751,3 +783,17 @@ function collider_car_home(car, home){
         superCar.GoRight();
     }
 }
+
+
+
+function collider_person_structure(person,structure){
+    /*
+        Now,we need to fucking populate the list of actions ayyyy lmao
+    */
+
+    var superStructure = structure.filthyGrandFather;
+    var superPerson = person.filthyGrandFather;
+    game.physics.arcade.collide(person, structure);
+}
+
+

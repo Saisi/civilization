@@ -2,7 +2,22 @@ var game = new Phaser.Game(800, 600, Phaser.AUTO, 'game-area', { preload: preloa
 var cursors;
 
 
+// var map_interactions = {};
 
+// var Interaction = function(stringInteraction){
+//     this.actionSet = {};
+//     map_interactions[stringInteraction] = this;
+// }
+// Interaction.prototype.AddAction(action_name, action_function) = function(){
+//     this.actionSet[actionSet] = action_function;
+// }
+
+
+
+// function InitializeInteractions(){
+//     var FarmInteraction = new Interaction(stringFarm);
+//     FarmInteraction.AddAction("feed", );
+// }
 
 
 /*
@@ -18,6 +33,8 @@ var Farm = function(x,y,sprite_name){
     this.stomachAdd = 10;
     this.health = 20;
     this.nourishmentKind=0;
+
+    this.ID = Math.random();
 
 
 
@@ -44,8 +61,11 @@ var Farm = function(x,y,sprite_name){
     game.physics.enable(this.farm, Phaser.Physics.ARCADE);
 
     this.farm.body.immovable=true;
-
     this.farm.filthyGrandFather=this;
+
+    //interaction model
+    this.actionSet = {"Feed":this.FeedPerson,"Water":this.WaterFarm};
+
     nourishments.push(this);
 }
 
@@ -82,6 +102,7 @@ var Home = function(x, y, sprite_name){
     //do i really need this
     this.sprite_name=sprite_name;
     
+    this.ID = Math.random();
 
     width=image_map[sprite_name][0];
     height=image_map[sprite_name][1];
@@ -105,8 +126,8 @@ var Home = function(x, y, sprite_name){
     game.physics.enable(this.home, Phaser.Physics.ARCADE);
 
     this.home.body.immovable=true;
-
     this.home.filthyGrandFather=this;
+    this.actionSet = {"Feed":this.FeedPerson,"Water":this.WaterFarm};
     homes.push(this);
 };
 
@@ -137,7 +158,7 @@ var World = function(){
     this.buildBuildingMode = false;
     this.buildingKind = "";
 
-
+    this.previousBuildingContact =-1;
     this.contactCurrent="";
 
     this.clock=0;
@@ -787,10 +808,27 @@ function collider_car_home(car, home){
 
 
 function collider_person_structure(person,structure){
+    /*So dirty, I need a shower,ugh*/
+    var list = document.getElementById("list");
     /*
         Now,we need to fucking populate the list of actions ayyyy lmao
     */
+    var count = 0;
+    var innerHTML = "";
 
+    if(world.previousBuildingContact != structure.filthyGrandFather.ID){
+        var dict = structure.filthyGrandFather.actionSet;
+        for(var key in dict){
+            if (dict.hasOwnProperty(key)) {
+                count++;
+                innerHTML += "<li>"+ key +"</li>";            }
+        }
+        world.previousBuildingContact = structure.filthyGrandFather.ID;
+    }
+
+    if(count>0){
+        list.innerHTML = '<ul id="list">' + innerHTML +'</ul>'
+    }
     var superStructure = structure.filthyGrandFather;
     var superPerson = person.filthyGrandFather;
     game.physics.arcade.collide(person, structure);

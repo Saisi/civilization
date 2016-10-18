@@ -3,21 +3,37 @@ var cursors;
 
 
 
-var StateAlert = function(banner_text, button_text,callback_function){
 
-}
 
 /*
 0 = farm
 */
 var Farm = function(x,y,sprite_name){
+    this.x=x;
+    this.y=y;
+    this.sprite_name=sprite_name;
+
     this.HealthDropRateInMinutes = 30;
     this.HealthDropAmount = 25;
     this.stomachAdd = 10;
     this.health = 20;
-
-
     this.nourishmentKind=0;
+
+    width=image_map[sprite_name].width;
+    height=image_map[sprite_name].height;
+
+
+    //can be optimized
+    for(var i=x;i<width+margin;i++){
+        for(var j=y;j<height+margin;j++){
+            if(world[i][j]){
+                console.log("couldn't add " + sprite_name);
+                alert("Can't add here, sorry Bieber dance");
+                return null;
+            }
+            world.grid[i][j]=1;
+        }
+    }
 
     this.farm = game.add.sprite(x, y, sprite_name);
     //game.physics.arcade.enable(this.home);
@@ -41,12 +57,41 @@ Farm.prototype.FeedPerson = function(person){
 //     this.health += 5;
 // }
 
+var margin=5;
+var stringFarm = "farm";
 
+function BuildAFarm(){
+    world.buildingKind = stringFarm;
+    world.buildBuildingMode = true;
+    console.log("built your fucking farm");
+}
 
 
 var Home = function(x, y, sprite_name){
-   
+    this.x=x;
+    this.y=y;
+    //do i really need this
+    this.sprite_name=sprite_name;
+    
+
+    width=image_map[sprite_name].width;
+    height=image_map[sprite_name].height;
+
+
+    //can be optimized
+    for(var i=x;i<width+margin;i++){
+        for(var j=y;j<height+margin;j++){
+            if(world[i][j]){
+                console.log("couldn't add " + sprite_name);
+                return null;
+            }
+            world.grid[i][j]=1;
+        }
+    }
+
     this.home = game.add.sprite(x, y, sprite_name);
+
+
     //game.physics.arcade.enable(this.home);
     game.physics.enable(this.home, Phaser.Physics.ARCADE);
 
@@ -62,12 +107,50 @@ Home.prototype.GetSprite = function(){
 }
 
 
+var Road = function(x,y, width,height, sprite_name){
+    this.sprite_name=sprite_name;
+    this.x=x;
+    this.y=y;
+    this.road = game.add.tileSprite(x, y, width, height, sprite_name);
+
+
+
+
+    roads.push(this);
+}
+
+Road.prototype.GetSprite = function(){
+    return this.road;
+}
+
 var World = function(){
+
+    this.buildBuildingMode = false;
+    this.buildingKind = "";
+
     this.clock=0;
     this.day=60;
     this.minute=0;
     this.second=0;
 
+    //create 2D grid
+    this.grid = new Array(game.world.width);
+    for(var i=0;i<game.world.width;i++){
+        this.grid[i] = new Array(game.world.height);
+    }
+    for(var i=0;i<game.world.width;i++){
+        for(var j=0;j<game.world.height;j++){
+            this.grid[i][j]=0;
+        }
+    }
+
+
+    //make sure global states are updated
+    this.stateBannerCurrent = null;
+    // this.BannerFunctionToDispatch=null;
+
+
+    this.IndexPreviousBanner = -1;
 
     var road_main;
     var road_rib_barrier_top;
@@ -75,7 +158,8 @@ var World = function(){
     var road_main_barrier_left;
     var road_main_barrier_right;
 
-
+    //800 console.log(game.world.width);
+    //600 console.log(game.world.height);
 
 
     game.add.tileSprite(0, 0,game.world.width ,game.world.height, 'earth');
@@ -84,8 +168,8 @@ var World = function(){
     var home_protagonist = new Home(0, 260, 'home_brown');
 
 
-    road_main = game.add.tileSprite(32*8, 0, 128 ,game.world.height, 'road_main');
-    road_rib = game.add.tileSprite(0, 32*4,game.world.width , 32*4, 'road_main');
+    road_main = new Road(30*8, 0, 128 ,game.world.height, 'road_main');
+    road_rib = new Road(0, 32*4,game.world.width , 32*4, 'road_main');
     
 
 
@@ -107,13 +191,30 @@ var World = function(){
     this.healthText = game.add.text(0, game.world.height-20, 'health: ' + protagonist.health, { font:"14px Arial",fill: '#000' });
 
 
-    var stateTextX=game.world.width/4;
-    var stateTextY=game.world.height/1.15;
+    this.stateBannerX=game.world.width/4;
+    this.stateBannerY=game.world.height/1.15;
+    this.stateBannerWidth=game.world.width/3;
+    this.stateBannerHeight=game.world.height/7;
    
-    var stateBanner = game.add.tileSprite(stateTextX, stateTextY, game.world.width/2 , game.world.height/7, 'background_state');
-    this.stateText = game.add.text(stateTextX, stateTextY, 'Welcome! ', { font:"16px Arial",fill: '#000' });
+    this.stateBanner = game.add.tileSprite(this.stateBannerX, this.stateBannerY, this.stateBannerWidth , this.stateBannerHeight, 'background_state');
+    this.stateBannerText = game.add.text(this.stateBannerX, this.stateBannerY, 'Welcome! ', { font:"16px Arial",fill: '#000' });
 
+
+
+    //hardcoded here
+    this.stateBannerButton = game.add.button(this.stateBannerX+this.stateBannerWidth-75,this.stateBannerY, 'button_banner', bannerCallbackDispatch, this);
+    this.stateBannerButton.width=75;
+    this.stateBannerButton.height=25;
+   
 }
+
+
+function bannerCallbackDispatch() {
+    console.log('Dispatch here mate');
+    this.stateBannerCurrent.callback_function();
+}
+
+
 
 var secondsInMinute = 10;
 var stomachDropRateInMinutes = 1;
@@ -133,18 +234,74 @@ World.prototype.update = function(){
             console.log(+this.minute + " minute");
             this.minuteJustArrived=true;
         }
-        console.log("second " + this.second);
+       // console.log("second " + this.second);
     }
     
+
 
     this.UpdatePhysics();
     this.UpdateHealth();
     this.UpdateStateBanner();
-
+    this.StateMachine();
+    this.UserInputDetection();
 
    
 
 }
+
+
+// var LookForPreExistingBanner = function(func){
+
+//     for(var i=0;i<StateAlertObjects.length;i++){
+//         if(StateAlertObjects[i].callback_function == func){
+//             return StateAlertObjects[i];
+//         }
+//     }
+//     return null;
+// }
+var LookForPreExistingBannerIndex = function(func){
+
+    for(var i=0;i<StateAlertObjects.length;i++){
+        if(StateAlertObjects[i].callback_function == func){
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+var NoFoodSupply="No food supply!";
+//ensure before update banner, we are sure state banner object doesn't already exist
+World.prototype.StateMachine=function(){
+
+    //do house cleaning
+    if(StateAlertObjects.length == 0){this.stateBannerCurrent = null;}
+
+
+    if(nourishments.length == 0){
+        if(LookForPreExistingBannerIndex(BuildAFarm) < 0){
+            var FarmAlert = new StateAlert("No food supply!\nBuild a farm",BuildAFarm);
+            StateAlertObjects.push(FarmAlert); 
+        }
+    } else{
+        //here, we have food source
+        var bannerObjectIndex = LookForPreExistingBannerIndex(BuildAFarm);
+        if(bannerObjectIndex >= 0){
+            StateAlertObjects.splice(bannerObjectIndex,1);
+        }
+    }
+
+
+    
+    //do house cleaning
+    if(StateAlertObjects.length == 0){
+        this.stateBannerCurrent = null;
+        this.stateBannerText.text = "";
+    }
+    
+}
+
+
 
 World.prototype.UpdateHealth=function(clock){
 
@@ -206,8 +363,23 @@ World.prototype.UpdatePhysics=function(){
 
 }
 
+World.prototype.UserInputDetection=function(){
+    if(this.buildBuildingMode && game.input.activePointer.isDown){
+        console.log("Built a farm");
+         if (this.buildingKind == stringFarm){
+            var f = new Farm(game.input.mousePointer.x,game.input.mousePointer.y,"farm_new");
+         }
+
+         this.buildBuildingMode=false;
+    }
+}
+
+
 
 var Person = function(x, y, sprite_name){
+    this.x=x;
+    this.y=y;
+
 	this.direction = 'right';
 
     this.maxStomach=60;
@@ -239,9 +411,29 @@ var Person = function(x, y, sprite_name){
 };
 
 
+
+var StateAlertObjects = [];
+//stateTexts
+var StateAlert = function(banner_text, callback_function){
+    //this.stateText 
+    this.banner_text = banner_text;
+    this.callback_function = callback_function;
+}
+
 World.prototype.UpdateStateBanner=function(){
 
-    
+    if(StateAlertObjects.length == 0) return;
+    var next = (world.IndexPreviousBanner+1)%StateAlertObjects.length;
+    world.IndexPreviousBanner = next;
+
+    banner=StateAlertObjects[next];
+
+    //console.log(StateAlertObjects);
+
+    this.stateBannerText.text = banner.banner_text;
+    this.stateBannerCurrent = banner;
+
+
 
 }
 
@@ -345,6 +537,9 @@ Food.prototype.GetNutrition = function(){
 }
 
 var Car = function(x, y, sprite_name){
+    this.x=x;
+    this.y=y;
+    this.sprite_name=sprite_name;
 
     this.p=100;
 
@@ -445,29 +640,45 @@ Car.prototype.UpdateHealth = function(){
 
 
 
-
+var roads = [];
 var people = [];
 var cars = [];
 var homes =[];
 var protagonist;
 var nourishments =[];
+var stateTexts= [];
 
+var image_map = {};
 
+function load_image(image,width,height){
+    image_map[image] = [width,height];
+    game.load.image(image, 'assets/'+image+ '.png');
+}
 
+function load_sprite(image,width, height){
+    image_map[image] = [width,height];
+    game.load.spritesheet(image, 'assets/'+image+ '.png', width, height);
+}
 
 function preload() {
 
 
-    game.load.image('car_blue', 'assets/car_blue.png');
-    game.load.image('car_red', 'assets/car_red.png');
+    // game.load.image('car_blue', 'assets/car_blue.png');
+    // game.load.image('car_red', 'assets/car_red.png');
 
-    // game.load.spritesheet('dude', 'assets/dude.png', 32, 48);
-    game.load.spritesheet('villager', 'assets/villager.png', 16, 16);
-    game.load.spritesheet('earth', 'assets/earth.png', 16, 16);
-    game.load.spritesheet('road_main', 'assets/road_main.png', 16, 16);
-    game.load.spritesheet('home_brown', 'assets/home_brown.png', 64, 55);
+    load_image('car_blue',32,64);
+    load_image('car_red',32,64);
 
-    game.load.spritesheet('background_state', 'assets/background_state.png', 16, 16);
+
+    load_sprite('villager',16, 16);
+    load_sprite('earth',16, 16);
+    load_sprite('road_main',16, 16);
+    load_sprite('home_brown',64, 55);
+    load_sprite('farm_new',16, 16);
+
+    load_sprite('background_state',16, 16);
+    load_sprite('button_banner',128, 64);
+
 }
 
 

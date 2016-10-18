@@ -73,7 +73,10 @@ var Farm = function(x,y,sprite_name){
 Farm.prototype.FeedPerson = function(person){
     person.health += this.stomachAdd;
     this.health -= this.stomachAdd;
+    console.log("we eating fam");
+    console.log(this.health);
 }
+
 
 
 Farm.prototype.GetSprite = function(){
@@ -813,22 +816,22 @@ function collider_person_structure(person,structure){
     /*
         Now,we need to fucking populate the list of actions ayyyy lmao
     */
-    var count = 0;
-    var innerHTML = "";
+ 
 
     if(world.previousBuildingContact != structure.filthyGrandFather.ID){
+        list.innerHTML = '';
         var dict = structure.filthyGrandFather.actionSet;
         for(var key in dict){
             if (dict.hasOwnProperty(key)) {
-                count++;
-                innerHTML += "<li>"+ key +"</li>";            }
+                var li = document.createElement('li');
+                li.appendChild(document.createTextNode(key));  
+                list.appendChild(li);
+                li.onclick=dict[key];
+           }
         }
         world.previousBuildingContact = structure.filthyGrandFather.ID;
     }
 
-    if(count>0){
-        list.innerHTML = '<ul id="list">' + innerHTML +'</ul>'
-    }
     var superStructure = structure.filthyGrandFather;
     var superPerson = person.filthyGrandFather;
     game.physics.arcade.collide(person, structure);

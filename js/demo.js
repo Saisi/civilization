@@ -64,30 +64,63 @@ var Farm = function(x,y,sprite_name){
     this.farm.filthyGrandFather=this;
 
     //interaction model
-    this.actionSet = {"Feed":this.FeedPerson,"Water":this.WaterFarm};
+    this.actionSet = {"Feed":[this,FeedPerson]};
 
     nourishments.push(this);
 }
 
 
-Farm.prototype.FeedPerson = function(person){
-    person.health += this.stomachAdd;
-    this.health -= this.stomachAdd;
-    console.log("we eating fam");
-    console.log(this.health);
+var LookForObjectInArray = function(array, obj){
+
+    for(var i=0;i<array.length;i++){
+        if(array[i] == obj){
+            return i;
+        }
+    }
+    return -1;
 }
 
-
-var ToDispatchFarmInteractions = [];
-
-
-function Dispatch(){
-    for(var i=0; i < ToDispatchFarmInteractions.length;i++){
-        
+function FeedPerson(food_source, person){
+    //if farm alive, feed person
+    if(food_source.DecrementHealth()){
+        person.feed(food_source);
     }
 }
 
 
+// var ToDispatchFarmInteractions = [];
+
+
+// function Dispatch(){
+//     for(var i=0; i < ToDispatchFarmInteractions.length;i++){
+
+//     }
+//     ToDispatchFarmInteractions = [];
+// }
+
+
+Farm.prototype.DecrementHealth=function(){
+
+    
+    if(this.health < 0){
+        var index = LookForObjectInArray(nourishments, this);
+        if(index < 0){console.log("farm that we just saw doesn't exist, lmao");}
+        nourishments.splice(index,1);
+        this.GetSprite().destroy();
+        return false;
+    }
+
+     this.health -= this.stomachAdd;
+
+    if(this.health < 0){
+        var index = LookForObjectInArray(nourishments, this);
+        if(index < 0){console.log("farm that we just saw doesn't exist, lmao");}
+        nourishments.splice(index,1);
+        this.GetSprite().destroy();
+    }
+
+    return true;
+}
 
 Farm.prototype.GetSprite = function(){
     return this.farm;
@@ -254,9 +287,8 @@ function bannerCallbackDispatch() {
 }
 
 
-function dispatchStructurePersonF
 
-var secondsInMinute = 10;
+var secondsInMinute = 50;
 var stomachDropRateInMinutes = 1;
 var minimumHealth = 80;
 
@@ -469,7 +501,13 @@ var Person = function(x, y, sprite_name){
     people.push(this);
 };
 
-
+Person.prototype.feed=function(food_source){
+    this.stomach += food_source.stomachAdd;
+    if(this.stomach > this.maxStomach){
+        this.stomach = this.maxStomach;
+        this.health += 5;
+    }
+}
 
 var StateAlertObjects = [];
 //stateTexts
@@ -835,6 +873,9 @@ function collider_protagonist_structure(person,structure){
     */
  
 
+    var superStructure = structure.filthyGrandFather;
+    var superPerson = person.filthyGrandFather;
+
     if(world.previousBuildingContact != structure.filthyGrandFather.ID){
         list.innerHTML = '';
         var dict = structure.filthyGrandFather.actionSet;
@@ -843,17 +884,19 @@ function collider_protagonist_structure(person,structure){
                 var li = document.createElement('li');
                 li.appendChild(document.createTextNode(key));  
                 list.appendChild(li);
-                li.onclick=dict[key];
+                li.onclick= function () {
+                        var array=dict[key];
+                        var obj=array[0];
+                        var func=array[1];
+
+                        func(obj,superPerson);
+                }
            }
         }
         world.previousBuildingContact = structure.filthyGrandFather.ID;
     }
 
-    var superStructure = structure.filthyGrandFather;
-    var superPerson = person.filthyGrandFather;
-   
     world.currentCollideStructure = superStructure;
-
     game.physics.arcade.collide(person, structure);
 }
 

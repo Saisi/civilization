@@ -78,6 +78,16 @@ Farm.prototype.FeedPerson = function(person){
 }
 
 
+var ToDispatchFarmInteractions = [];
+
+
+function Dispatch(){
+    for(var i=0; i < ToDispatchFarmInteractions.length;i++){
+        
+    }
+}
+
+
 
 Farm.prototype.GetSprite = function(){
     return this.farm;
@@ -171,6 +181,8 @@ var World = function(){
 
 
 
+    this.currentCollideStructure = null;
+
 
     //make sure global states are updated
     this.stateBannerCurrent = null;
@@ -242,6 +254,7 @@ function bannerCallbackDispatch() {
 }
 
 
+function dispatchStructurePersonF
 
 var secondsInMinute = 10;
 var stomachDropRateInMinutes = 1;
@@ -392,16 +405,16 @@ World.prototype.UpdatePhysics=function(){
 
     //people and structure overlap
     for(var x=0; x<nourishments.length;x++){
-        game.physics.arcade.overlap(protagonist.GetSprite(), nourishments[x].GetSprite(),collider_person_structure, null, this);
+        game.physics.arcade.overlap(protagonist.GetSprite(), nourishments[x].GetSprite(),collider_protagonist_structure, null, this);
     } 
     for(var x=0; x<homes.length;x++ ){
-        game.physics.arcade.overlap(protagonist.GetSprite(), homes[x].GetSprite(),collider_person_structure, null, this);
+        game.physics.arcade.overlap(protagonist.GetSprite(), homes[x].GetSprite(),collider_protagonist_structure, null, this);
     }   
 
 
     // //people and structure collisons
     // for(var i=0; i < nourishments.length;i++){
-    //      collider_person_structure(protagonist.GetSprite(),nourishments[i].GetSprite());
+    //      collider_protagonist_structure(protagonist.GetSprite(),nourishments[i].GetSprite());
     //  }
 
 
@@ -429,6 +442,7 @@ var Person = function(x, y, sprite_name){
 
     this.maxStomach=60;
 
+     this.ID = Math.random();
     //variables of state
     this.stomach = 30; //max is 
     this.health = 100;
@@ -810,7 +824,10 @@ function collider_car_home(car, home){
 
 
 
-function collider_person_structure(person,structure){
+function collider_protagonist_structure(person,structure){
+
+
+
     /*So dirty, I need a shower,ugh*/
     var list = document.getElementById("list");
     /*
@@ -834,6 +851,9 @@ function collider_person_structure(person,structure){
 
     var superStructure = structure.filthyGrandFather;
     var superPerson = person.filthyGrandFather;
+   
+    world.currentCollideStructure = superStructure;
+
     game.physics.arcade.collide(person, structure);
 }
 

@@ -104,9 +104,13 @@ Farm.prototype.DecrementHealth=function(){
     
     if(this.health < 0){
         var index = LookForObjectInArray(nourishments, this);
-        if(index < 0){console.log("farm that we just saw doesn't exist, lmao");}
+        if(index < 0){
+            console.log("farm that we just saw doesn't exist, lmao");
+        }
         nourishments.splice(index,1);
         this.GetSprite().destroy();
+        var list = document.getElementById("list");
+        list.innerHTML ="";
         return false;
     }
 
@@ -114,9 +118,13 @@ Farm.prototype.DecrementHealth=function(){
 
     if(this.health < 0){
         var index = LookForObjectInArray(nourishments, this);
-        if(index < 0){console.log("farm that we just saw doesn't exist, lmao");}
+        if(index < 0){
+            console.log("farm that we just saw doesn't exist, lmao");
+        }
         nourishments.splice(index,1);
         this.GetSprite().destroy();
+        var list = document.getElementById("list");
+        list.innerHTML ="";
     }
 
     return true;

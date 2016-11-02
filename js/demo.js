@@ -56,7 +56,7 @@ var Water = function(x,y, sprite_name){
     this.water.filthyGrandFather=this;
 
     //interaction model
-    this.actionSet = {"Tend":[this,TendWater], "destroy":[this,DestroyWater};
+    this.actionSet = {"Tend":[this,TendWater], "destroy":[this,DestroyWater]};
 
     waters.push(this);
 
@@ -161,7 +161,7 @@ Farm.prototype.DecrementHealth=function(){
     return true;
 }
 
-Farm.prototype.RemoveListForDeadFarm(personContact){
+Farm.prototype.RemoveListForDeadFarm=function(personContact){
     if(this.health <= 0){
         var index = LookForObjectInArray(nourishments, this);
         if(index < 0){
@@ -275,6 +275,8 @@ Road.prototype.GetSprite = function(){
 }
 
 var World = function(){
+    this.secondJustArrived=false;
+    this.minuteJustArrived=false;
 
     this.buildBuildingMode = false;
     this.buildingKind = "";
@@ -369,13 +371,15 @@ var minimumHealth = 80;
 
 World.prototype.update = function(){
     this.minuteJustArrived=false; 
+    this.secondJustArrived=false;
 
     this.clock = (this.clock%60)+1;
-
 
         //one second
     if(this.clock==secondsInMinute){
         this.second=(this.second%secondsInMinute)+1;
+        this.secondJustArrived=true;
+
         if(this.second == secondsInMinute){ //one minute
             this.minute=(this.minute%secondsInMinute)+1;
             console.log(+this.minute + " minute");
@@ -443,7 +447,7 @@ World.prototype.StateMachine=function(){
         if(LookForPreExistingBannerIndex(BuildAWater) < 0){
             var WaterAlert = new StateAlert("No water supply to farm!\nBuild a well",BuildAWater);
             StateAlertObjects.push(WaterAlert); 
-        }
+        } 
     } else{
         //here, we have food source
         var bannerObjectIndex = LookForPreExistingBannerIndex(BuildAWater);
@@ -621,8 +625,11 @@ var StateAlert = function(banner_text, callback_function){
 
 World.prototype.UpdateStateBanner=function(){
 
-    if(StateAlertObjects.length == 0) return;
-    var next = (world.IndexPreviousBanner+1)%StateAlertObjects.length;
+    if(StateAlertObjects.length == 0){return;}
+    if(this.secondJustArrived==false || this.second % 10 > 0) {return;}
+
+
+    var next = (this.IndexPreviousBanner+1)%StateAlertObjects.length;
     world.IndexPreviousBanner = next;
 
     banner=StateAlertObjects[next];

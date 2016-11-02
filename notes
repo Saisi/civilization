@@ -1,4 +1,6 @@
-rotate through existing banners {currently stuck on food, how about water mate huh?}
+implement stuff for 
+"Tend":[this,TendWater], "destroy":[this,DestroyWater]
+
 
 
 create running console of shit

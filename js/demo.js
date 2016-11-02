@@ -20,16 +20,60 @@ var cursors;
 // }
 
 
-/*
-0 = farm
-*/
+var Water = function(x,y, sprite_name){
+    this.x = x;
+    this.y = y;
+    this.sprite_name = sprite_name;
+
+
+    this.health = 60;
+    this.ID = Math.random();
+
+
+    width=image_map[sprite_name][0];
+    height=image_map[sprite_name][1];
+
+    for(var i=x;i<x+width+margin;i++){
+        for(var j=y;j<y+height+margin;j++){
+            if(grid[i][j]==1){
+                console.log("couldn't add " + sprite_name);
+                alert("Can't add here, sorry Bieber dance");
+                return null;
+            }
+            grid[i][j]=1;
+        }
+    }
+
+
+
+    this.water = game.add.sprite(x, y, sprite_name);
+
+
+    //game.physics.arcade.enable(this.home);
+    game.physics.enable(this.water, Phaser.Physics.ARCADE);
+
+    this.water.body.immovable=true;
+    this.water.filthyGrandFather=this;
+
+    //interaction model
+    this.actionSet = {"Tend":[this,TendWater], "destroy":[this,DestroyWater};
+
+    waters.push(this);
+
+
+
+
+
+}
+
+
 var Farm = function(x,y,sprite_name){
     this.x=x;
     this.y=y;
     this.sprite_name=sprite_name;
 
-    this.HealthDropRateInMinutes = 30;
-    this.HealthDropAmount = 25;
+    // this.HealthDropRateInMinutes = 30;
+    // this.HealthDropAmount = 25;
     this.stomachAdd = 10;
     this.health = 20;
     this.nourishmentKind=0;
@@ -64,7 +108,7 @@ var Farm = function(x,y,sprite_name){
     this.farm.filthyGrandFather=this;
 
     //interaction model
-    this.actionSet = {"Feed":[this,FeedPerson]};
+    this.actionSet = {"Feed":[this,FeedPerson],"Water":[this,WaterFarm]};
 
     nourishments.push(this);
 }
@@ -87,6 +131,10 @@ function FeedPerson(food_source, person){
     }
 }
 
+function WaterFarm(food_source, person, water_source){
+
+}
+
 
 // var ToDispatchFarmInteractions = [];
 
@@ -101,52 +149,71 @@ function FeedPerson(food_source, person){
 
 Farm.prototype.DecrementHealth=function(){
 
-    
-    if(this.health < 0){
-        var index = LookForObjectInArray(nourishments, this);
-        if(index < 0){
-            console.log("farm that we just saw doesn't exist, lmao");
-        }
-        nourishments.splice(index,1);
-        this.GetSprite().destroy();
-        var list = document.getElementById("list");
-        list.innerHTML ="";
-        return false;
+    if(this.RemoveListForDeadFarm(true)){
+        return false; //we didn't succeed
     }
 
-     this.health -= this.stomachAdd;
+    this.health -= this.stomachAdd;
+    this.health = Math.max(this.health, 0);
 
-    if(this.health < 0){
-        var index = LookForObjectInArray(nourishments, this);
-        if(index < 0){
-            console.log("farm that we just saw doesn't exist, lmao");
-        }
-        nourishments.splice(index,1);
-        this.GetSprite().destroy();
-        var list = document.getElementById("list");
-        list.innerHTML ="";
-    }
+    this.RemoveListForDeadFarm(true);
 
     return true;
 }
+
+Farm.prototype.RemoveListForDeadFarm(personContact){
+    if(this.health <= 0){
+        var index = LookForObjectInArray(nourishments, this);
+        if(index < 0){
+            console.log("farm that we just saw doesn't exist, lmao");
+        }
+        nourishments.splice(index,1);
+        this.GetSprite().destroy();
+
+        if(personContact){
+            var list = document.getElementById("list");
+            list.innerHTML ="";
+        }
+
+        return True;
+    }
+    return False;
+}
+
 
 Farm.prototype.GetSprite = function(){
     return this.farm;
 }
 
-// Farm.prototype.eat = function(food){
-//     this.stomach += food.GetNutrition();
-//     this.stomach %= this.maxStomach;
-//     this.health += 5;
-// }
+Farm.prototype.UpdateHealth=function(){
+    if(world.minute && world.minuteJustArrived){
+        this.tickHealth();
+    }
+
+    this.RemoveListForDeadFarm(false);
+}
+
+Farm.prototype.TickHealth=function(){
+    this.health -= .4;
+    this.health = Math.max(this.health,0);
+}
+
+
 
 var margin=5;
 var stringFarm = "farm";
+var stringWater = "water";
 
 function BuildAFarm(){
     world.buildingKind = stringFarm;
     world.buildBuildingMode = true;
     console.log("built your fucking farm");
+}
+
+function BuildAWater(){
+    world.buildingKind = stringWater;
+    world.buildBuildingMode = true;
+    console.log("built your fucking water");
 }
 
 
@@ -393,6 +460,10 @@ World.prototype.UpdateHealth=function(clock){
         people[x].UpdateHealth();
     }
 
+    for(var x=0; x<nourishments.length;x++){
+        nourishments[x].UpdateHealth();
+    }
+
 
 }
 
@@ -467,9 +538,13 @@ World.prototype.UserInputDetection=function(){
          if (this.buildingKind == stringFarm){
             new_farm = new Farm(game.input.mousePointer.x,game.input.mousePointer.y,"farm_new");
          }
+         else if (this.buildingKind == stringWater){
+            new_farm = new Water(game.input.mousePointer.x,game.input.mousePointer.y,"water_new");
+         }
 
          if(new_farm != null) {  this.buildBuildingMode=false; }
     }
+
 }
 
 
@@ -510,10 +585,16 @@ var Person = function(x, y, sprite_name){
 };
 
 Person.prototype.feed=function(food_source){
+    if(this.stomachTimeout) {
+        console.log("Wait 10 minutes to feed again");
+        return;
+    }
+
     this.stomach += food_source.stomachAdd;
     if(this.stomach > this.maxStomach){
         this.stomach = this.maxStomach;
         this.health += 5;
+        this.stomachTimeout=3;
     }
 }
 
@@ -544,17 +625,15 @@ World.prototype.UpdateStateBanner=function(){
 
 Person.prototype.tickHunger = function(){
     this.stomach -= (this.maxStomach/2);
-
-    if(this.stomach<0){
-        this.stomach = 0;
-    }
+    this.stomach = Math.max(this.stomach,0);
 }
 
-Person.prototype.eat = function(food){
-    this.stomach += food.GetNutrition();
-    this.stomach %= this.maxStomach;
-    this.health += 5;
+Person.prototype.tickHealth = function(){
+    this.health -= .3;
+    this.health = Math.max(this.health,0);
 }
+
+
 
 
 
@@ -609,9 +688,14 @@ Person.prototype.GetSprite = function(){
 Person.prototype.UpdateHealth = function(){
     if(world.minute && world.minuteJustArrived){
         this.tickHunger();
+        this.tickHealth();
         console.log("You are now: " +this.stomach);
-        
+        this.stomachTimeout -= 1;
+        this.stomachTimeout = Math.max(this.stomachTimeout, 0);
     }
+
+
+
 
     
     //if on empty, drop health every minute
@@ -751,6 +835,8 @@ var cars = [];
 var homes =[];
 var protagonist;
 var nourishments =[];
+var waters = [];
+
 var stateTexts= [];
 
 var image_map = {};

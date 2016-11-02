@@ -1,3 +1,12 @@
+create running console of shit
+show health of farm on bump
+
+
+less than  0, should leq 0
+
+if health low, user and farm, warm the person ok!!
+
+
 verify we eating fam affects the right farm fam
 
 
@@ -15,3 +24,10 @@ this might be the problem with car collisions right now
 
 
 implementing food shit
+
+
+store previous time, locations in a cookie I guess lmao
+
+prevent someone from manipulating variables. mangle them I guess?
+
+ensure base for anything we are subtracting

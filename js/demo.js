@@ -439,6 +439,19 @@ World.prototype.StateMachine=function(){
     }
 
 
+    if(waters.length == 0){
+        if(LookForPreExistingBannerIndex(BuildAWater) < 0){
+            var WaterAlert = new StateAlert("No water supply to farm!\nBuild a well",BuildAWater);
+            StateAlertObjects.push(WaterAlert); 
+        }
+    } else{
+        //here, we have food source
+        var bannerObjectIndex = LookForPreExistingBannerIndex(BuildAWater);
+        if(bannerObjectIndex >= 0){
+            StateAlertObjects.splice(bannerObjectIndex,1);
+        }
+    }
+
     
     //do house cleaning
     if(StateAlertObjects.length == 0){
@@ -877,6 +890,7 @@ function preload() {
     load_sprite('road_main',16, 16);
     load_sprite('home_brown',64, 55);
     load_sprite('farm_new',32, 32);
+    load_sprite('water_new',32, 32);
 
     load_sprite('background_state',16, 16);
     load_sprite('button_banner',128, 64);
@@ -887,7 +901,6 @@ function preload() {
 function create() {
  
     world = new World();
-
 
 	cursors = game.input.keyboard.createCursorKeys();
 }
